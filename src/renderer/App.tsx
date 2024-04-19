@@ -22,15 +22,20 @@ function Hello() {
     address: '127.0.0.1',
     port: '4455',
   });
+  const [spectateEndpoint, setSpectateEndpoint] = useState(
+    'ws://127.0.0.1:49809',
+  );
   const [gotSettings, setGotSettings] = useState(false);
   useEffect(() => {
     const inner = async () => {
       const appVersionPromise = window.electron.getVersion();
       const latestAppVersionPromise = window.electron.getLatestVersion();
       const obsSettingsPromise = window.electron.getObsSettings();
+      const spectateEndpointPromise = window.electron.getSpectateEndpoint();
       setAppVersion(await appVersionPromise);
       setLatestAppVersion(await latestAppVersionPromise);
       setObsSettings(await obsSettingsPromise);
+      setSpectateEndpoint(await spectateEndpointPromise);
       setGotSettings(true);
     };
     inner();
@@ -46,6 +51,8 @@ function Hello() {
         <Settings
           obsSettings={obsSettings}
           setObsSettings={setObsSettings}
+          spectateEndpoint={spectateEndpoint}
+          setSpectateEndpoint={setSpectateEndpoint}
           appVersion={appVersion}
           latestAppVersion={latestAppVersion}
           gotSettings={gotSettings}

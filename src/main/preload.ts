@@ -12,6 +12,10 @@ const electronHandler = {
     ipcRenderer.invoke('getObsSettings'),
   setObsSettings: (newObsSettings: OBSSettings): Promise<void> =>
     ipcRenderer.invoke('setObsSettings', newObsSettings),
+  getSpectateEndpoint: (): Promise<string> =>
+    ipcRenderer.invoke('getSpectateEndpoint'),
+  setSpectateEndpoint: (newSpectateEndpoint: string): Promise<void> =>
+    ipcRenderer.invoke('setSpectateEndpoint', newSpectateEndpoint),
   getVersion: (): Promise<string> => ipcRenderer.invoke('getVersion'),
   getLatestVersion: (): Promise<string> =>
     ipcRenderer.invoke('getLatestVersion'),

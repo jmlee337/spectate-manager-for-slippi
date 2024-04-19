@@ -2,6 +2,7 @@ import { IpcMainInvokeEvent, app, ipcMain } from 'electron';
 import OBSWebSocket from 'obs-websocket-js';
 import Store from 'electron-store';
 import { OBSInput, OBSSettings } from '../common/types';
+import SpectateWebSocket from './spectate';
 
 export default async function setupIPCs() {
   const store = new Store();
@@ -12,19 +13,28 @@ export default async function setupIPCs() {
         address: '127.0.0.1',
         port: '4455',
       };
+  let spectateEndpoint: string = store.has('spectateEndpoint')
+    ? (store.get('specateEndpoint') as string)
+    : 'ws://127.0.0.1:49809';
+
   const obsWebSocket = new OBSWebSocket();
+  const spectateWebSocket = new SpectateWebSocket();
 
   ipcMain.removeHandler('connect');
   ipcMain.handle('connect', async () => {
-    await obsWebSocket.connect(
+    const obsWebSocketPromise = obsWebSocket.connect(
       `${obsSettings.protocol}://${obsSettings.address}:${obsSettings.port}`,
       obsSettings.password,
     );
+    const spectateWebSocketPromise =
+      spectateWebSocket.connect(spectateEndpoint);
+    await Promise.all([obsWebSocketPromise, spectateWebSocketPromise]);
   });
 
   // priority 0: "Match title, otherwise find window of same type"
   // priority 1: "Window title must match"
   // priority 2: "Match title, otherwise find window of same executable" (default)
+  // Faster Melee - Slippi (3.4.1) - Playback
   ipcMain.removeHandler('getInputs');
   ipcMain.handle('getInputs', async () => {
     const { inputs } = await obsWebSocket.call('GetInputList', {
@@ -64,6 +74,20 @@ export default async function setupIPCs() {
     (event: IpcMainInvokeEvent, newObsSettings: OBSSettings) => {
       store.set('obsSettings', newObsSettings);
       obsSettings = newObsSettings;
+    },
+  );
+
+  ipcMain.removeHandler('getSpectateEndpoint');
+  ipcMain.handle('getSpectateEndpoint', () => {
+    return spectateEndpoint;
+  });
+
+  ipcMain.removeHandler('setSpectateEndpoint');
+  ipcMain.handle(
+    'setSpectateEndpoint',
+    (event: IpcMainInvokeEvent, newSpectateEndpoint: string) => {
+      store.set('spectateEndpoint', newSpectateEndpoint);
+      spectateEndpoint = newSpectateEndpoint;
     },
   );
 

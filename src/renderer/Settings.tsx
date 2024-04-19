@@ -24,12 +24,16 @@ const Form = styled.form`
 export default function Settings({
   obsSettings,
   setObsSettings,
+  spectateEndpoint,
+  setSpectateEndpoint,
   appVersion,
   latestAppVersion,
   gotSettings,
 }: {
   obsSettings: OBSSettings;
   setObsSettings: (newObsSettings: OBSSettings) => void;
+  spectateEndpoint: string;
+  setSpectateEndpoint: (newSpectateEndpoint: string) => void;
   appVersion: string;
   latestAppVersion: string;
   gotSettings: boolean;
@@ -124,41 +128,53 @@ export default function Settings({
           </Typography>
         </Stack>
         <DialogContent sx={{ pt: 0 }}>
-          <Form onSubmit={setNewObsSettings}>
-            <Select
-              label="OBS Protocol"
-              name="protocol"
-              value={obsSettings.protocol}
-            >
-              <MenuItem value="ws">ws://</MenuItem>
-              <MenuItem value="wss">wss://</MenuItem>
-            </Select>
+          <Stack alignItems="start" spacing="8px">
+            <Form onSubmit={setNewObsSettings}>
+              <Select
+                label="OBS Protocol"
+                name="protocol"
+                value={obsSettings.protocol}
+              >
+                <MenuItem value="ws">ws://</MenuItem>
+                <MenuItem value="wss">wss://</MenuItem>
+              </Select>
+              <TextField
+                defaultValue={obsSettings.address}
+                inputProps={{ maxLength: 15 }}
+                label="OBS Address"
+                name="address"
+                variant="standard"
+              />
+              <TextField
+                defaultValue={obsSettings.port}
+                inputProps={{ min: 1, max: 65535 }}
+                label="OBS Port"
+                name="port"
+                type="number"
+                variant="standard"
+              />
+              <TextField
+                defaultValue={obsSettings.password}
+                label="OBS Password"
+                name="password"
+                type="password"
+                variant="standard"
+              />
+              <Button type="submit" variant="contained">
+                Set!
+              </Button>
+            </Form>
             <TextField
-              defaultValue={obsSettings.address}
-              inputProps={{ maxLength: 15 }}
-              label="OBS Address"
-              name="address"
+              label="Spectate Remote Control Endpoint"
+              onChange={async (event) => {
+                const newSpectateEndpoint = event.target.value;
+                await window.electron.setSpectateEndpoint(newSpectateEndpoint);
+                setSpectateEndpoint(newSpectateEndpoint);
+              }}
+              value={spectateEndpoint}
               variant="standard"
             />
-            <TextField
-              defaultValue={obsSettings.port}
-              inputProps={{ min: 1, max: 65535 }}
-              label="OBS Port"
-              name="port"
-              type="number"
-              variant="standard"
-            />
-            <TextField
-              defaultValue={obsSettings.password}
-              label="OBS Password"
-              name="password"
-              type="password"
-              variant="standard"
-            />
-            <Button type="submit" variant="contained">
-              Set!
-            </Button>
-          </Form>
+          </Stack>
         </DialogContent>
       </Dialog>
     </>

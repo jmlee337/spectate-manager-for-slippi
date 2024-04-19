@@ -1,11 +1,14 @@
+import EventEmitter from 'events';
 import { client as Client, connection as Connection } from 'websocket';
 
-export default class SpectateWebSocket {
+export default class SpectateWebSocket extends EventEmitter {
   private client: Client;
 
   private connection: Connection | null;
 
   constructor() {
+    super();
+
     this.client = new Client();
     this.connection = null;
   }
@@ -25,6 +28,7 @@ export default class SpectateWebSocket {
         this.connection = connection;
         this.connection.on('close', () => {
           this.connection = null;
+          this.emit('close');
         });
         resolve();
       });

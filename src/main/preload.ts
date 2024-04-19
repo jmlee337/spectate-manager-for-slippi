@@ -7,6 +7,7 @@ export type Channels = 'ipc-example';
 
 const electronHandler = {
   connect: (): Promise<void> => ipcRenderer.invoke('connect'),
+  getConnected: (): Promise<boolean> => ipcRenderer.invoke('getConnected'),
   getInputs: (): Promise<OBSInput[]> => ipcRenderer.invoke('getInputs'),
   getObsSettings: (): Promise<OBSSettings> =>
     ipcRenderer.invoke('getObsSettings'),
@@ -19,6 +20,10 @@ const electronHandler = {
   getVersion: (): Promise<string> => ipcRenderer.invoke('getVersion'),
   getLatestVersion: (): Promise<string> =>
     ipcRenderer.invoke('getLatestVersion'),
+  onDisconnect: (callback: () => void) => {
+    ipcRenderer.removeAllListeners('disconnect');
+    ipcRenderer.on('disconnect', callback);
+  },
 };
 
 contextBridge.exposeInMainWorld('electron', electronHandler);

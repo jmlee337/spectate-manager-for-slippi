@@ -11,6 +11,7 @@ import {
   Stack,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
+import { Cable } from '@mui/icons-material';
 import Settings from './Settings';
 import { OBSInput, OBSSettings } from '../common/types';
 
@@ -25,6 +26,7 @@ function Hello() {
   const [spectateEndpoint, setSpectateEndpoint] = useState(
     'ws://127.0.0.1:49809',
   );
+  const [connected, setConnected] = useState(false);
   const [gotSettings, setGotSettings] = useState(false);
   useEffect(() => {
     const inner = async () => {
@@ -32,18 +34,24 @@ function Hello() {
       const latestAppVersionPromise = window.electron.getLatestVersion();
       const obsSettingsPromise = window.electron.getObsSettings();
       const spectateEndpointPromise = window.electron.getSpectateEndpoint();
+      const connectedPromise = window.electron.getConnected();
       setAppVersion(await appVersionPromise);
       setLatestAppVersion(await latestAppVersionPromise);
       setObsSettings(await obsSettingsPromise);
       setSpectateEndpoint(await spectateEndpointPromise);
+      setConnected(await connectedPromise);
       setGotSettings(true);
     };
     inner();
   }, []);
+  useEffect(() => {
+    window.electron.onDisconnect(() => {
+      setConnected(false);
+    });
+  }, []);
 
   const [error, setError] = useState('');
   const [connecting, setConnecting] = useState(false);
-  const [connected, setConnected] = useState(false);
   const [obsInputs, setObsInputs] = useState<OBSInput[]>([]);
   return (
     <Stack>
@@ -59,7 +67,10 @@ function Hello() {
         />
         <Button
           disabled={connecting || connected}
-          endIcon={connecting && <CircularProgress size="24px" />}
+          endIcon={
+            !connected &&
+            (connecting ? <CircularProgress size="24px" /> : <Cable />)
+          }
           onClick={async () => {
             setConnecting(true);
             try {
@@ -74,7 +85,7 @@ function Hello() {
           }}
           variant="contained"
         >
-          Connect
+          {connected ? 'Connected' : 'Connect'}
         </Button>
       </Stack>
       <Stack direction="row">

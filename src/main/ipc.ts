@@ -1,10 +1,10 @@
-import { IpcMainInvokeEvent, app, ipcMain } from 'electron';
+import { BrowserWindow, IpcMainInvokeEvent, app, ipcMain } from 'electron';
 import OBSWebSocket from 'obs-websocket-js';
 import Store from 'electron-store';
 import { OBSInput, OBSSettings } from '../common/types';
 import SpectateWebSocket from './spectate';
 
-export default async function setupIPCs() {
+export default async function setupIPCs(mainWindow: BrowserWindow) {
   const store = new Store();
   let obsSettings: OBSSettings = store.has('obsSettings')
     ? (store.get('obsSettings') as OBSSettings)
@@ -14,11 +14,20 @@ export default async function setupIPCs() {
         port: '4455',
       };
   let spectateEndpoint: string = store.has('spectateEndpoint')
-    ? (store.get('specateEndpoint') as string)
+    ? (store.get('spectateEndpoint') as string)
     : 'ws://127.0.0.1:49809';
 
+  let connected = false;
   const obsWebSocket = new OBSWebSocket();
+  obsWebSocket.on('ConnectionClosed', () => {
+    connected = false;
+    mainWindow.webContents.send('disconnect');
+  });
   const spectateWebSocket = new SpectateWebSocket();
+  spectateWebSocket.on('close', () => {
+    connected = false;
+    mainWindow.webContents.send('disconnect');
+  });
 
   ipcMain.removeHandler('connect');
   ipcMain.handle('connect', async () => {
@@ -28,8 +37,21 @@ export default async function setupIPCs() {
     );
     const spectateWebSocketPromise =
       spectateWebSocket.connect(spectateEndpoint);
-    await Promise.all([obsWebSocketPromise, spectateWebSocketPromise]);
+    try {
+      await obsWebSocketPromise;
+    } catch (e: any) {
+      throw new Error('Failed to connect to OBS');
+    }
+    try {
+      await spectateWebSocketPromise;
+    } catch (e: any) {
+      throw new Error('Failed to connect to Spectate Remote Control');
+    }
+    connected = true;
   });
+
+  ipcMain.removeHandler('getConnected');
+  ipcMain.handle('getConnected', () => connected);
 
   // priority 0: "Match title, otherwise find window of same type"
   // priority 1: "Window title must match"
@@ -64,9 +86,7 @@ export default async function setupIPCs() {
   });
 
   ipcMain.removeHandler('getObsSettings');
-  ipcMain.handle('getObsSettings', () => {
-    return obsSettings;
-  });
+  ipcMain.handle('getObsSettings', () => obsSettings);
 
   ipcMain.removeHandler('setObsSettings');
   ipcMain.handle(
@@ -78,9 +98,7 @@ export default async function setupIPCs() {
   );
 
   ipcMain.removeHandler('getSpectateEndpoint');
-  ipcMain.handle('getSpectateEndpoint', () => {
-    return spectateEndpoint;
-  });
+  ipcMain.handle('getSpectateEndpoint', () => spectateEndpoint);
 
   ipcMain.removeHandler('setSpectateEndpoint');
   ipcMain.handle(

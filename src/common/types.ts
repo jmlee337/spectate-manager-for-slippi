@@ -9,3 +9,8 @@ export type OBSInput = {
   name: string;
   uuid: string;
 };
+
+export type SpectatingBroadcast = {
+  broadcastId: string;
+  dolphinId: string;
+};

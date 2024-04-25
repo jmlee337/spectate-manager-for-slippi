@@ -13,7 +13,7 @@ import {
 import { useEffect, useState } from 'react';
 import { Cable } from '@mui/icons-material';
 import Settings from './Settings';
-import { OBSInput, OBSSettings } from '../common/types';
+import { OBSInput, OBSSettings, SpectatingBroadcast } from '../common/types';
 
 function Hello() {
   const [appVersion, setAppVersion] = useState('');
@@ -27,6 +27,10 @@ function Hello() {
     'ws://127.0.0.1:49809',
   );
   const [connected, setConnected] = useState(false);
+  const [spectatingBroadcasts, setSpectatingBroadcasts] = useState<
+    SpectatingBroadcast[]
+  >([]);
+  const [obsInputs, setObsInputs] = useState<OBSInput[]>([]);
   const [gotSettings, setGotSettings] = useState(false);
   useEffect(() => {
     const inner = async () => {
@@ -34,12 +38,19 @@ function Hello() {
       const latestAppVersionPromise = window.electron.getLatestVersion();
       const obsSettingsPromise = window.electron.getObsSettings();
       const spectateEndpointPromise = window.electron.getSpectateEndpoint();
-      const connectedPromise = window.electron.getConnected();
+      const newConnected = await window.electron.getConnected();
       setAppVersion(await appVersionPromise);
       setLatestAppVersion(await latestAppVersionPromise);
       setObsSettings(await obsSettingsPromise);
       setSpectateEndpoint(await spectateEndpointPromise);
-      setConnected(await connectedPromise);
+      setConnected(newConnected);
+      if (newConnected) {
+        const obsInputsPromise = window.electron.getInputs();
+        const spectatingBroadcastsPromise =
+          window.electron.getSpectatingBroadcasts();
+        setObsInputs(await obsInputsPromise);
+        setSpectatingBroadcasts(await spectatingBroadcastsPromise);
+      }
       setGotSettings(true);
     };
     inner();
@@ -52,7 +63,6 @@ function Hello() {
 
   const [error, setError] = useState('');
   const [connecting, setConnecting] = useState(false);
-  const [obsInputs, setObsInputs] = useState<OBSInput[]>([]);
   return (
     <Stack>
       <Stack direction="row" justifyContent="end" gap="8px">
@@ -76,7 +86,11 @@ function Hello() {
             try {
               await window.electron.connect();
               setConnected(true);
-              setObsInputs(await window.electron.getInputs());
+              const obsInputsPromise = window.electron.getInputs();
+              const spectatingBroadcastsPromise =
+                window.electron.getSpectatingBroadcasts();
+              setObsInputs(await obsInputsPromise);
+              setSpectatingBroadcasts(await spectatingBroadcastsPromise);
             } catch (e: any) {
               setError(e instanceof Error ? e.message : e);
             } finally {
@@ -92,6 +106,15 @@ function Hello() {
         <Stack>
           {obsInputs.map((obsInput) => (
             <div key={obsInput.uuid}>{obsInput.name}</div>
+          ))}
+        </Stack>
+        <Stack>
+          {spectatingBroadcasts.map((spectatingBroadcast) => (
+            <div
+              key={`${spectatingBroadcast.broadcastId}${spectatingBroadcast.dolphinId}`}
+            >
+              {spectatingBroadcast.dolphinId}: {spectatingBroadcast.broadcastId}
+            </div>
           ))}
         </Stack>
       </Stack>

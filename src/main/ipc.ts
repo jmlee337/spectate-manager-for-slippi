@@ -71,12 +71,22 @@ export default async function setupIPCs(mainWindow: BrowserWindow) {
 
       if (
         inputSettings.capture_mode === 'window' &&
-        (inputSettings.window as string).startsWith('Faster Melee - Slippi')
+        inputSettings.priority === 1 &&
+        typeof inputSettings.window === 'string' &&
+        inputSettings.window.startsWith('Faster Melee - Slippi')
       ) {
-        inputNames.push({
+        const obsInput: OBSInput = {
           name: input.inputName as string,
           uuid: input.inputUuid as string,
-        });
+        };
+        const windowParts = inputSettings.window.split(':');
+        if (windowParts.length === 3) {
+          const titleParts = windowParts[0].split(' | ');
+          if (titleParts.length === 2) {
+            [, obsInput.dolphinId] = titleParts;
+          }
+        }
+        inputNames.push(obsInput);
       }
     });
     await Promise.all(inputPromises);

@@ -8,6 +8,7 @@ export type OBSSettings = {
 export type OBSInput = {
   name: string;
   uuid: string;
+  dolphinId?: string;
 };
 
 export type SpectatingBroadcast = {

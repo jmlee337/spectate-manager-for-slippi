@@ -9,14 +9,14 @@ export default class SpectateWebSocket extends EventEmitter {
 
   private connection: Connection | null;
 
-  private spectatingBroadcasts: SpectatingBroadcast[];
+  private dolphinIdToBroadcastId: Map<string, string>;
 
   constructor() {
     super();
 
     this.client = new Client();
     this.connection = null;
-    this.spectatingBroadcasts = [];
+    this.dolphinIdToBroadcastId = new Map();
   }
 
   async connect(spectateEndpoint: string) {
@@ -34,6 +34,7 @@ export default class SpectateWebSocket extends EventEmitter {
         this.connection = connection;
         this.connection.on('close', () => {
           this.connection = null;
+          this.dolphinIdToBroadcastId.clear();
           this.emit('close');
         });
         const timeout = setTimeout(() => {
@@ -55,7 +56,7 @@ export default class SpectateWebSocket extends EventEmitter {
                     typeof dolphinId === 'string' &&
                     dolphinId.length > 0
                   ) {
-                    this.spectatingBroadcasts.push({ broadcastId, dolphinId });
+                    this.dolphinIdToBroadcastId.set(dolphinId, broadcastId);
                   } else {
                     reject();
                     return;
@@ -78,7 +79,12 @@ export default class SpectateWebSocket extends EventEmitter {
       throw new Error('no connection');
     }
 
-    return new Array(...this.spectatingBroadcasts);
+    return Array.from(this.dolphinIdToBroadcastId.entries()).map(
+      ([dolphinId, broadcastId]): SpectatingBroadcast => ({
+        broadcastId,
+        dolphinId,
+      }),
+    );
   }
 
   async getBroadcasts() {

@@ -68,6 +68,14 @@ function Hello() {
       setConnected(false);
     });
   }, []);
+  // TODO
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const dolphinIdToBroadcastId = new Map(
+    spectatingBroadcasts.map((spectatingBroadcast) => [
+      spectatingBroadcast.dolphinId,
+      spectatingBroadcast.broadcastId,
+    ]),
+  );
 
   const [error, setError] = useState('');
   const [connecting, setConnecting] = useState(false);
@@ -116,15 +124,6 @@ function Hello() {
         <Stack>
           {obsInputs.map((obsInput) => (
             <div key={obsInput.uuid}>{obsInput.name}</div>
-          ))}
-        </Stack>
-        <Stack>
-          {spectatingBroadcasts.map((spectatingBroadcast) => (
-            <div
-              key={`${spectatingBroadcast.broadcastId}${spectatingBroadcast.dolphinId}`}
-            >
-              {spectatingBroadcast.dolphinId}: {spectatingBroadcast.broadcastId}
-            </div>
           ))}
         </Stack>
         <Stack>

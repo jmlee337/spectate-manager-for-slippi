@@ -13,7 +13,12 @@ import {
 import { useEffect, useState } from 'react';
 import { Cable } from '@mui/icons-material';
 import Settings from './Settings';
-import { OBSInput, OBSSettings, SpectatingBroadcast } from '../common/types';
+import {
+  Broadcast,
+  OBSInput,
+  OBSSettings,
+  SpectatingBroadcast,
+} from '../common/types';
 
 function Hello() {
   const [appVersion, setAppVersion] = useState('');
@@ -30,6 +35,7 @@ function Hello() {
   const [spectatingBroadcasts, setSpectatingBroadcasts] = useState<
     SpectatingBroadcast[]
   >([]);
+  const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [obsInputs, setObsInputs] = useState<OBSInput[]>([]);
   const [gotSettings, setGotSettings] = useState(false);
   useEffect(() => {
@@ -48,8 +54,10 @@ function Hello() {
         const obsInputsPromise = window.electron.getInputs();
         const spectatingBroadcastsPromise =
           window.electron.getSpectatingBroadcasts();
+        const broadcastsPromise = window.electron.getBroadcasts();
         setObsInputs(await obsInputsPromise);
         setSpectatingBroadcasts(await spectatingBroadcastsPromise);
+        setBroadcasts(await broadcastsPromise);
       }
       setGotSettings(true);
     };
@@ -89,8 +97,10 @@ function Hello() {
               const obsInputsPromise = window.electron.getInputs();
               const spectatingBroadcastsPromise =
                 window.electron.getSpectatingBroadcasts();
+              const broadcastsPromise = window.electron.getBroadcasts();
               setObsInputs(await obsInputsPromise);
               setSpectatingBroadcasts(await spectatingBroadcastsPromise);
+              setBroadcasts(await broadcastsPromise);
             } catch (e: any) {
               setError(e instanceof Error ? e.message : e);
             } finally {
@@ -114,6 +124,13 @@ function Hello() {
               key={`${spectatingBroadcast.broadcastId}${spectatingBroadcast.dolphinId}`}
             >
               {spectatingBroadcast.dolphinId}: {spectatingBroadcast.broadcastId}
+            </div>
+          ))}
+        </Stack>
+        <Stack>
+          {broadcasts.map((broadcast) => (
+            <div key={broadcast.id}>
+              {broadcast.broadcaster.name} {broadcast.name}
             </div>
           ))}
         </Stack>

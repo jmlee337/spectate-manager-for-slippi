@@ -1,6 +1,6 @@
 import EventEmitter from 'events';
 import { client as Client, connection as Connection } from 'websocket';
-import { SpectatingBroadcast } from '../common/types';
+import { Broadcast, SpectatingBroadcast } from '../common/types';
 
 const TIMEOUT_MS = 5000;
 
@@ -37,6 +37,7 @@ export default class SpectateWebSocket extends EventEmitter {
           this.emit('close');
         });
         const timeout = setTimeout(() => {
+          this.connection?.close();
           reject();
         }, TIMEOUT_MS);
         this.connection.once('message', (message) => {
@@ -46,8 +47,8 @@ export default class SpectateWebSocket extends EventEmitter {
               const newSpectatingBroadcasts = json.spectatingBroadcasts;
               if (Array.isArray(newSpectatingBroadcasts)) {
                 clearTimeout(timeout);
-                newSpectatingBroadcasts.forEach((newSpectatingBroadcast) => {
-                  const { broadcastId, dolphinId } = newSpectatingBroadcast;
+                for (let i = 0; i < newSpectatingBroadcasts.length; i += 1) {
+                  const { broadcastId, dolphinId } = newSpectatingBroadcasts[i];
                   if (
                     typeof broadcastId === 'string' &&
                     broadcastId.length > 0 &&
@@ -55,9 +56,13 @@ export default class SpectateWebSocket extends EventEmitter {
                     dolphinId.length > 0
                   ) {
                     this.spectatingBroadcasts.push({ broadcastId, dolphinId });
+                  } else {
+                    reject();
+                    return;
                   }
-                });
+                }
                 resolve();
+                return;
               }
             }
           }
@@ -74,5 +79,56 @@ export default class SpectateWebSocket extends EventEmitter {
     }
 
     return new Array(...this.spectatingBroadcasts);
+  }
+
+  async getBroadcasts() {
+    return new Promise((resolve, reject) => {
+      if (!this.connection) {
+        reject(new Error('no connection'));
+        return;
+      }
+
+      // eslint-disable-next-line no-undef
+      let timeout: NodeJS.Timeout;
+      const listener = (message: any) => {
+        if (message.type === 'utf8') {
+          const json = JSON.parse(message.utf8Data);
+          if (json.op === 'list-broadcasts-response') {
+            const { broadcasts } = json;
+            if (Array.isArray(broadcasts)) {
+              clearTimeout(timeout);
+              const newBroadcasts: Broadcast[] = [];
+              for (let i = 0; i < broadcasts.length; i += 1) {
+                const { id, name, broadcaster } = broadcasts[i];
+                if (
+                  typeof id === 'string' &&
+                  id.length > 0 &&
+                  typeof name === 'string' &&
+                  name.length > 0 &&
+                  typeof broadcaster?.uid === 'string' &&
+                  broadcaster?.uid.length > 0 &&
+                  typeof broadcaster?.name === 'string' &&
+                  broadcaster?.name.length > 0
+                ) {
+                  newBroadcasts.push({ id, name, broadcaster });
+                } else {
+                  reject();
+                  return;
+                }
+              }
+              resolve(newBroadcasts);
+              return;
+            }
+          }
+        }
+        reject();
+      };
+      this.connection.once('message', listener);
+      this.connection.send(JSON.stringify({ op: 'list-broadcasts-request' }));
+      timeout = setTimeout(() => {
+        this.connection?.removeListener('message', listener);
+        reject();
+      }, TIMEOUT_MS);
+    });
   }
 }

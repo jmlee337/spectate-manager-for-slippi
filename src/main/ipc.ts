@@ -90,6 +90,9 @@ export default async function setupIPCs(mainWindow: BrowserWindow) {
     spectateWebSocket.getSpectatingBroadcasts(),
   );
 
+  ipcMain.removeHandler('getBroadcasts');
+  ipcMain.handle('getBroadcasts', () => spectateWebSocket.getBroadcasts());
+
   ipcMain.removeHandler('getObsSettings');
   ipcMain.handle('getObsSettings', () => obsSettings);
 

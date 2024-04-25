@@ -1,7 +1,12 @@
 // Disable no-unused-vars, broken for spread args
 /* eslint no-unused-vars: off */
 import { contextBridge, ipcRenderer } from 'electron';
-import { OBSInput, OBSSettings, SpectatingBroadcast } from '../common/types';
+import {
+  Broadcast,
+  OBSInput,
+  OBSSettings,
+  SpectatingBroadcast,
+} from '../common/types';
 
 export type Channels = 'ipc-example';
 
@@ -11,6 +16,8 @@ const electronHandler = {
   getInputs: (): Promise<OBSInput[]> => ipcRenderer.invoke('getInputs'),
   getSpectatingBroadcasts: (): Promise<SpectatingBroadcast[]> =>
     ipcRenderer.invoke('getSpectatingBroadcasts'),
+  getBroadcasts: (): Promise<Broadcast[]> =>
+    ipcRenderer.invoke('getBroadcasts'),
   getObsSettings: (): Promise<OBSSettings> =>
     ipcRenderer.invoke('getObsSettings'),
   setObsSettings: (newObsSettings: OBSSettings): Promise<void> =>

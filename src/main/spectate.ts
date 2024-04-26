@@ -1,6 +1,7 @@
 import EventEmitter from 'events';
 import { client as Client, connection as Connection } from 'websocket';
 import { Broadcast, SpectatingBroadcast } from '../common/types';
+import { dolphinPrefix } from '../common/constants';
 
 const TIMEOUT_MS = 5000;
 
@@ -9,14 +10,20 @@ export default class SpectateWebSocket extends EventEmitter {
 
   private connection: Connection | null;
 
+  private broadcastIdToDolphinId: Map<string, string>;
+
   private dolphinIdToBroadcastId: Map<string, string>;
+
+  private dolphinOrdinal: number;
 
   constructor() {
     super();
 
     this.client = new Client();
     this.connection = null;
+    this.broadcastIdToDolphinId = new Map();
     this.dolphinIdToBroadcastId = new Map();
+    this.dolphinOrdinal = 0;
   }
 
   async connect(spectateEndpoint: string) {
@@ -34,8 +41,24 @@ export default class SpectateWebSocket extends EventEmitter {
         this.connection = connection;
         this.connection.on('close', () => {
           this.connection = null;
+          this.broadcastIdToDolphinId.clear();
           this.dolphinIdToBroadcastId.clear();
           this.emit('close');
+        });
+        this.connection.on('message', (message) => {
+          if (message.type === 'utf8') {
+            const json = JSON.parse(message.utf8Data);
+            const { op, dolphinId } = json;
+            if (
+              op === 'dolphin-closed-event' &&
+              typeof dolphinId === 'string' &&
+              this.dolphinIdToBroadcastId.has(dolphinId)
+            ) {
+              const broadcastId = this.dolphinIdToBroadcastId.get(dolphinId)!;
+              this.broadcastIdToDolphinId.delete(broadcastId);
+              this.dolphinIdToBroadcastId.delete(dolphinId);
+            }
+          }
         });
         const timeout = setTimeout(() => {
           this.connection?.close();
@@ -56,6 +79,7 @@ export default class SpectateWebSocket extends EventEmitter {
                     typeof dolphinId === 'string' &&
                     dolphinId.length > 0
                   ) {
+                    this.broadcastIdToDolphinId.set(broadcastId, dolphinId);
                     this.dolphinIdToBroadcastId.set(dolphinId, broadcastId);
                   } else {
                     reject();
@@ -79,8 +103,8 @@ export default class SpectateWebSocket extends EventEmitter {
       throw new Error('no connection');
     }
 
-    return Array.from(this.dolphinIdToBroadcastId.entries()).map(
-      ([dolphinId, broadcastId]): SpectatingBroadcast => ({
+    return Array.from(this.broadcastIdToDolphinId.entries()).map(
+      ([broadcastId, dolphinId]): SpectatingBroadcast => ({
         broadcastId,
         dolphinId,
       }),
@@ -97,12 +121,17 @@ export default class SpectateWebSocket extends EventEmitter {
       // eslint-disable-next-line no-undef
       let timeout: NodeJS.Timeout;
       const listener = (message: any) => {
+        clearTimeout(timeout);
         if (message.type === 'utf8') {
           const json = JSON.parse(message.utf8Data);
           if (json.op === 'list-broadcasts-response') {
-            const { broadcasts } = json;
+            const { broadcasts, err } = json;
+            if (err) {
+              reject(new Error(err));
+              return;
+            }
+
             if (Array.isArray(broadcasts)) {
-              clearTimeout(timeout);
               const newBroadcasts: Broadcast[] = [];
               for (let i = 0; i < broadcasts.length; i += 1) {
                 const { id, name, broadcaster } = broadcasts[i];
@@ -131,6 +160,62 @@ export default class SpectateWebSocket extends EventEmitter {
       };
       this.connection.once('message', listener);
       this.connection.send(JSON.stringify({ op: 'list-broadcasts-request' }));
+      timeout = setTimeout(() => {
+        this.connection?.removeListener('message', listener);
+        reject();
+      }, TIMEOUT_MS);
+    });
+  }
+
+  async spectateBroadcast(broadcastId: string, requestDolphinId?: string) {
+    return new Promise((resolve, reject) => {
+      if (!this.connection) {
+        reject(new Error('no connection'));
+        return;
+      }
+
+      const alreadyDolphinId = this.broadcastIdToDolphinId.get(broadcastId);
+      if (alreadyDolphinId) {
+        resolve(alreadyDolphinId);
+        return;
+      }
+
+      // eslint-disable-next-line no-undef
+      let timeout: NodeJS.Timeout;
+      const listener = (message: any) => {
+        clearTimeout(timeout);
+        if (message.type === 'utf8') {
+          const json = JSON.parse(message.utf8Data);
+          if (json.op === 'spectate-broadcast-response') {
+            const { dolphinId, err } = json;
+            if (err) {
+              reject(new Error(err));
+              return;
+            }
+
+            if (typeof dolphinId === 'string' && dolphinId.length > 0) {
+              this.broadcastIdToDolphinId.set(broadcastId, dolphinId);
+              this.dolphinIdToBroadcastId.set(dolphinId, broadcastId);
+              resolve(dolphinId);
+              return;
+            }
+          }
+        }
+        reject();
+      };
+      this.connection.once('message', listener);
+
+      const nextDolphinId =
+        requestDolphinId || `${dolphinPrefix}${this.dolphinOrdinal}`;
+      this.dolphinOrdinal += 1;
+      this.connection.send(
+        JSON.stringify({
+          op: 'spectate-broadcast-request',
+          broadcastId,
+          dolphinId: nextDolphinId,
+        }),
+      );
+
       timeout = setTimeout(() => {
         this.connection?.removeListener('message', listener);
         reject();

@@ -18,6 +18,8 @@ const electronHandler = {
     ipcRenderer.invoke('getSpectatingBroadcasts'),
   getBroadcasts: (): Promise<Broadcast[]> =>
     ipcRenderer.invoke('getBroadcasts'),
+  putBroadcastInInput: (broadcastId: string, uuid: string): Promise<void> =>
+    ipcRenderer.invoke('putBroadcastInInput', broadcastId, uuid),
   getObsSettings: (): Promise<OBSSettings> =>
     ipcRenderer.invoke('getObsSettings'),
   setObsSettings: (newObsSettings: OBSSettings): Promise<void> =>
@@ -26,6 +28,10 @@ const electronHandler = {
     ipcRenderer.invoke('getSpectateEndpoint'),
   setSpectateEndpoint: (newSpectateEndpoint: string): Promise<void> =>
     ipcRenderer.invoke('setSpectateEndpoint', newSpectateEndpoint),
+  getDolphinVersion: (): Promise<string> =>
+    ipcRenderer.invoke('getDolphinVersion'),
+  setDolphinVersion: (newDolphinVersion: string): Promise<void> =>
+    ipcRenderer.invoke('setDolphinVersion', newDolphinVersion),
   getVersion: (): Promise<string> => ipcRenderer.invoke('getVersion'),
   getLatestVersion: (): Promise<string> =>
     ipcRenderer.invoke('getLatestVersion'),

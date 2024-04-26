@@ -1,5 +1,6 @@
 import { FormEvent, useMemo, useState } from 'react';
 import {
+  Alert,
   Button,
   Dialog,
   DialogContent,
@@ -26,6 +27,8 @@ export default function Settings({
   setObsSettings,
   spectateEndpoint,
   setSpectateEndpoint,
+  dolphinVersion,
+  setDolphinVersion,
   appVersion,
   latestAppVersion,
   gotSettings,
@@ -34,6 +37,8 @@ export default function Settings({
   setObsSettings: (newObsSettings: OBSSettings) => void;
   spectateEndpoint: string;
   setSpectateEndpoint: (newSpectateEndpoint: string) => void;
+  dolphinVersion: string;
+  setDolphinVersion: (newDolphinVersion: string) => void;
   appVersion: string;
   latestAppVersion: string;
   gotSettings: boolean;
@@ -72,7 +77,7 @@ export default function Settings({
     }
     return false;
   }, [appVersion, latestAppVersion]);
-  if (gotSettings && !hasAutoOpened && needUpdate) {
+  if (gotSettings && !hasAutoOpened && (needUpdate || !dolphinVersion)) {
     setOpen(true);
     setHasAutoOpened(true);
   }
@@ -174,6 +179,34 @@ export default function Settings({
               value={spectateEndpoint}
               variant="standard"
             />
+            <TextField
+              label="Dolphin Version"
+              onChange={async (event) => {
+                const newDolphinVersion = event.target.value;
+                await window.electron.setDolphinVersion(newDolphinVersion);
+                setDolphinVersion(newDolphinVersion);
+              }}
+              value={dolphinVersion}
+              variant="standard"
+            />
+            {!dolphinVersion && (
+              <Alert severity="error">
+                Unable to fetch dolphin version. Please enter dolphin version
+                above (IE. 3.4.1)
+              </Alert>
+            )}
+            {needUpdate && (
+              <Alert severity="warning">
+                Update available!{' '}
+                <a
+                  href="https://github.com/jmlee337/spectate-manager-for-slippi/releases/latest"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Version {latestAppVersion}
+                </a>
+              </Alert>
+            )}
           </Stack>
         </DialogContent>
       </Dialog>

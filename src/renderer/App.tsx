@@ -31,6 +31,7 @@ function Hello() {
   const [spectateEndpoint, setSpectateEndpoint] = useState(
     'ws://127.0.0.1:49809',
   );
+  const [dolphinVersion, setDolphinVersion] = useState('');
   const [connected, setConnected] = useState(false);
   const [spectatingBroadcasts, setSpectatingBroadcasts] = useState<
     SpectatingBroadcast[]
@@ -44,11 +45,13 @@ function Hello() {
       const latestAppVersionPromise = window.electron.getLatestVersion();
       const obsSettingsPromise = window.electron.getObsSettings();
       const spectateEndpointPromise = window.electron.getSpectateEndpoint();
+      const dolphinVersionPromise = window.electron.getDolphinVersion();
       const newConnected = await window.electron.getConnected();
       setAppVersion(await appVersionPromise);
       setLatestAppVersion(await latestAppVersionPromise);
       setObsSettings(await obsSettingsPromise);
       setSpectateEndpoint(await spectateEndpointPromise);
+      setDolphinVersion(await dolphinVersionPromise);
       setConnected(newConnected);
       if (newConnected) {
         const obsInputsPromise = window.electron.getInputs();
@@ -87,6 +90,8 @@ function Hello() {
           setObsSettings={setObsSettings}
           spectateEndpoint={spectateEndpoint}
           setSpectateEndpoint={setSpectateEndpoint}
+          dolphinVersion={dolphinVersion}
+          setDolphinVersion={setDolphinVersion}
           appVersion={appVersion}
           latestAppVersion={latestAppVersion}
           gotSettings={gotSettings}
@@ -123,13 +128,16 @@ function Hello() {
       <Stack direction="row">
         <Stack>
           {obsInputs.map((obsInput) => (
-            <div key={obsInput.uuid}>{obsInput.name}</div>
+            <div key={obsInput.uuid}>
+              {obsInput.name} {obsInput.uuid}{' '}
+              {obsInput.windowParts[0].split(' | ')[1]}
+            </div>
           ))}
         </Stack>
         <Stack>
           {broadcasts.map((broadcast) => (
             <div key={broadcast.id}>
-              {broadcast.broadcaster.name} {broadcast.name}
+              {broadcast.broadcaster.name} {broadcast.name} {broadcast.id}
             </div>
           ))}
         </Stack>

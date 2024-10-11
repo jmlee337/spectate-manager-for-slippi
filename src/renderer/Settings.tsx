@@ -152,7 +152,7 @@ export default function Settings({
               />
               <TextField
                 defaultValue={obsSettings.port}
-                inputProps={{ min: 1, max: 65535 }}
+                inputProps={{ min: 1024, max: 65535 }}
                 label="OBS Port"
                 name="port"
                 type="number"
